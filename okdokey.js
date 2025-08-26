@@ -17,8 +17,7 @@
         display: "flex",
         flexDirection: "column",
         fontFamily: "monospace",
-        overflow: "hidden",
-        userSelect: "none"
+        overflow: "hidden"
     });
     document.body.appendChild(container);
 
@@ -26,28 +25,56 @@
     Object.assign(editorWrapper.style, {
         flex: "1",
         display: "flex",
-        overflow: "hidden",
-        background: "rgba(15,15,15,0.95)",
-        fontSize: "13px"
+        position: "relative",
+        fontSize: "13px",
+        overflow: "hidden"
     });
     container.appendChild(editorWrapper);
 
     const lineNumbers = document.createElement("div");
     Object.assign(lineNumbers.style, {
-        background: "rgba(20,20,20,0.9)",
-        padding: "5px",
+        position: "absolute",
+        top: "0",
+        left: "0",
+        bottom: "0",
+        width: "35px",
+        padding: "5px 2px",
         textAlign: "right",
         color: "#888",
-        minWidth: "30px",
+        background: "rgba(20,20,20,0.9)",
+        overflow: "hidden",
         whiteSpace: "pre",
         fontSize: "13px"
     });
     lineNumbers.textContent = "1";
     editorWrapper.appendChild(lineNumbers);
 
+    const highlightLayer = document.createElement("pre");
+    Object.assign(highlightLayer.style, {
+        position: "absolute",
+        top: "0",
+        left: "35px",
+        right: "0",
+        bottom: "0",
+        margin: "0",
+        padding: "5px",
+        pointerEvents: "none",
+        whiteSpace: "pre",
+        fontFamily: "monospace",
+        fontSize: "13px",
+        lineHeight: "1.4em",
+        color: "#fff",
+        overflow: "auto"
+    });
+    editorWrapper.appendChild(highlightLayer);
+
     const textarea = document.createElement("textarea");
     Object.assign(textarea.style, {
-        flex: "1",
+        position: "absolute",
+        top: "0",
+        left: "35px",
+        right: "0",
+        bottom: "0",
         margin: "0",
         padding: "5px",
         border: "none",
@@ -59,30 +86,10 @@
         fontFamily: "monospace",
         fontSize: "13px",
         lineHeight: "1.4em",
-        zIndex: "2",
-        position: "relative"
+        overflow: "auto",
+        zIndex: "2"
     });
     editorWrapper.appendChild(textarea);
-
-    const highlightLayer = document.createElement("pre");
-    Object.assign(highlightLayer.style, {
-        position: "absolute",
-        margin: "0",
-        padding: "5px",
-        pointerEvents: "none",
-        whiteSpace: "pre-wrap",
-        wordWrap: "break-word",
-        overflow: "hidden",
-        fontFamily: "monospace",
-        fontSize: "13px",
-        lineHeight: "1.4em",
-        color: "#fff",
-        width: "calc(100% - 40px)",
-        height: "100%",
-        zIndex: "1"
-    });
-    editorWrapper.style.position = "relative";
-    editorWrapper.appendChild(highlightLayer);
 
     const buttonBar = document.createElement("div");
     Object.assign(buttonBar.style, {

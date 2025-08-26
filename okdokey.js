@@ -3,104 +3,139 @@
 
     const container = document.createElement("div");
     container.id = "bm-script-runner";
-    container.style.position = "fixed";
-    container.style.top = "100px";
-    container.style.left = "100px";
-    container.style.width = "350px";
-    container.style.height = "450px";
-    container.style.background = "rgba(0,0,0,0.85)";
-    container.style.color = "#fff";
-    container.style.zIndex = "999999";
-    container.style.border = "1px solid #333";
-    container.style.borderRadius = "10px";
-    container.style.display = "flex";
-    container.style.flexDirection = "column";
-    container.style.fontFamily = "monospace";
+    Object.assign(container.style, {
+        position: "fixed",
+        top: "100px",
+        left: "100px",
+        width: "350px",
+        height: "450px",
+        background: "rgba(0,0,0,0.9)",
+        color: "#fff",
+        zIndex: "999999",
+        border: "1px solid #333",
+        borderRadius: "10px",
+        display: "flex",
+        flexDirection: "column",
+        fontFamily: "monospace",
+        overflow: "hidden",
+        userSelect: "none"
+    });
     document.body.appendChild(container);
 
     const editorWrapper = document.createElement("div");
-    editorWrapper.style.flex = "1";
-    editorWrapper.style.display = "flex";
-    editorWrapper.style.overflow = "hidden";
+    Object.assign(editorWrapper.style, {
+        flex: "1",
+        display: "flex",
+        overflow: "hidden",
+        background: "rgba(15,15,15,0.95)",
+        fontSize: "13px"
+    });
     container.appendChild(editorWrapper);
 
     const lineNumbers = document.createElement("div");
-    lineNumbers.style.background = "rgba(20,20,20,0.9)";
-    lineNumbers.style.padding = "5px";
-    lineNumbers.style.textAlign = "right";
-    lineNumbers.style.userSelect = "none";
-    lineNumbers.style.color = "#888";
-    lineNumbers.style.minWidth = "30px";
-    lineNumbers.style.whiteSpace = "pre";
+    Object.assign(lineNumbers.style, {
+        background: "rgba(20,20,20,0.9)",
+        padding: "5px",
+        textAlign: "right",
+        color: "#888",
+        minWidth: "30px",
+        whiteSpace: "pre",
+        fontSize: "13px"
+    });
     lineNumbers.textContent = "1";
     editorWrapper.appendChild(lineNumbers);
 
-    const editor = document.createElement("pre");
-    editor.contentEditable = "true";
-    editor.style.flex = "1";
-    editor.style.margin = "0";
-    editor.style.padding = "5px";
-    editor.style.overflow = "auto";
-    editor.style.whiteSpace = "pre";
-    editor.style.outline = "none";
-    editor.style.fontSize = "13px";
-    editor.style.color = "#fff";
-    editor.style.background = "transparent";
-    editorWrapper.appendChild(editor);
+    const textarea = document.createElement("textarea");
+    Object.assign(textarea.style, {
+        flex: "1",
+        margin: "0",
+        padding: "5px",
+        border: "none",
+        outline: "none",
+        resize: "none",
+        color: "transparent",
+        caretColor: "#fff",
+        background: "transparent",
+        fontFamily: "monospace",
+        fontSize: "13px",
+        lineHeight: "1.4em",
+        zIndex: "2",
+        position: "relative"
+    });
+    editorWrapper.appendChild(textarea);
+
+    const highlightLayer = document.createElement("pre");
+    Object.assign(highlightLayer.style, {
+        position: "absolute",
+        margin: "0",
+        padding: "5px",
+        pointerEvents: "none",
+        whiteSpace: "pre-wrap",
+        wordWrap: "break-word",
+        overflow: "hidden",
+        fontFamily: "monospace",
+        fontSize: "13px",
+        lineHeight: "1.4em",
+        color: "#fff",
+        width: "calc(100% - 40px)",
+        height: "100%",
+        zIndex: "1"
+    });
+    editorWrapper.style.position = "relative";
+    editorWrapper.appendChild(highlightLayer);
 
     const buttonBar = document.createElement("div");
-    buttonBar.style.display = "flex";
-    buttonBar.style.justifyContent = "space-between";
-    buttonBar.style.padding = "5px";
-    buttonBar.style.background = "rgba(20,20,20,0.9)";
+    Object.assign(buttonBar.style, {
+        display: "flex",
+        justifyContent: "space-between",
+        padding: "5px",
+        background: "rgba(20,20,20,0.9)"
+    });
     container.appendChild(buttonBar);
 
-    const runBtn = document.createElement("button");
-    runBtn.textContent = "Execute";
-    runBtn.style.flex = "1";
-    runBtn.style.marginRight = "5px";
-    runBtn.style.background = "#222";
-    runBtn.style.color = "#fff";
-    runBtn.style.border = "none";
-    runBtn.style.cursor = "pointer";
-    buttonBar.appendChild(runBtn);
+    function makeBtn(label) {
+        const b = document.createElement("button");
+        b.textContent = label;
+        Object.assign(b.style, {
+            flex: "1",
+            margin: "0 2px",
+            background: "#222",
+            color: "#fff",
+            border: "none",
+            cursor: "pointer",
+            borderRadius: "4px"
+        });
+        return b;
+    }
 
-    const clearBtn = document.createElement("button");
-    clearBtn.textContent = "Clear";
-    clearBtn.style.flex = "1";
-    clearBtn.style.background = "#222";
-    clearBtn.style.color = "#fff";
-    clearBtn.style.border = "none";
-    clearBtn.style.cursor = "pointer";
+    const runBtn = makeBtn("Execute");
+    const clearBtn = makeBtn("Clear");
+    buttonBar.appendChild(runBtn);
     buttonBar.appendChild(clearBtn);
 
     function updateLineNumbers() {
-        const lines = editor.innerText.split("\n").length;
+        const lines = textarea.value.split("\n").length;
         lineNumbers.textContent = Array.from({ length: lines }, (_, i) => i + 1).join("\n");
     }
 
     function highlight() {
-        let text = editor.innerText;
-        text = text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-        text = text.replace(/("(.*?)"|'(.*?)')/g, '<span style="color:#ce9178">$1</span>');
-        text = text.replace(/\b(function|return|var|let|const|if|else|for|while|new|class|try|catch|await|async|throw)\b/g, '<span style="color:#569cd6">$1</span>');
-        text = text.replace(/\b(true|false|null|undefined)\b/g, '<span style="color:#569cd6">$1</span>');
-        editor.innerHTML = text.replace(/\n/g, "<br>");
-        placeCaretAtEnd(editor);
+        let code = textarea.value
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;");
+        code = code.replace(/("(.*?)"|'(.*?)')/g, '<span style="color:#ce9178">$1</span>');
+        code = code.replace(/\b(function|return|var|let|const|if|else|for|while|new|class|try|catch|await|async|throw)\b/g, '<span style="color:#569cd6">$1</span>');
+        code = code.replace(/\b(true|false|null|undefined)\b/g, '<span style="color:#569cd6">$1</span>');
+        highlightLayer.innerHTML = code;
     }
 
-    function placeCaretAtEnd(el) {
-        const range = document.createRange();
-        const sel = window.getSelection();
-        range.selectNodeContents(el);
-        range.collapse(false);
-        sel.removeAllRanges();
-        sel.addRange(range);
-    }
-
-    editor.addEventListener("input", () => {
+    textarea.addEventListener("input", () => {
         updateLineNumbers();
         highlight();
+    });
+    textarea.addEventListener("scroll", () => {
+        highlightLayer.scrollTop = textarea.scrollTop;
+        lineNumbers.scrollTop = textarea.scrollTop;
     });
 
     function convertGitHubToRaw(url) {
@@ -111,7 +146,7 @@
     }
 
     runBtn.onclick = async () => {
-        const code = editor.innerText.trim();
+        const code = textarea.value.trim();
         if (/(githubusercontent\.com|github\.com).*\.(js|txt)$/.test(code)) {
             const rawUrl = convertGitHubToRaw(code);
             try {
@@ -131,7 +166,8 @@
     };
 
     clearBtn.onclick = () => {
-        editor.innerText = "";
+        textarea.value = "";
+        highlightLayer.innerHTML = "";
         updateLineNumbers();
     };
 

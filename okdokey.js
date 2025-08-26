@@ -1,4 +1,4 @@
-(function() {
+(function () {
     if (document.getElementById("bm-script-runner")) return;
 
     const container = document.createElement("div");
@@ -6,28 +6,47 @@
     container.style.position = "fixed";
     container.style.top = "100px";
     container.style.left = "100px";
-    container.style.width = "300px";
-    container.style.height = "400px";
-    container.style.background = "rgba(0,0,0,0.9)";
+    container.style.width = "350px";
+    container.style.height = "450px";
+    container.style.background = "rgba(0,0,0,0.85)";
     container.style.color = "#fff";
     container.style.zIndex = "999999";
     container.style.border = "1px solid #333";
-    container.style.borderRadius = "8px";
+    container.style.borderRadius = "10px";
     container.style.display = "flex";
     container.style.flexDirection = "column";
     container.style.fontFamily = "monospace";
-    container.style.overflow = "hidden";
     document.body.appendChild(container);
 
-    const editor = document.createElement("div");
-    editor.contentEditable = true;
+    const editorWrapper = document.createElement("div");
+    editorWrapper.style.flex = "1";
+    editorWrapper.style.display = "flex";
+    editorWrapper.style.overflow = "hidden";
+    container.appendChild(editorWrapper);
+
+    const lineNumbers = document.createElement("div");
+    lineNumbers.style.background = "rgba(20,20,20,0.9)";
+    lineNumbers.style.padding = "5px";
+    lineNumbers.style.textAlign = "right";
+    lineNumbers.style.userSelect = "none";
+    lineNumbers.style.color = "#888";
+    lineNumbers.style.minWidth = "30px";
+    lineNumbers.style.whiteSpace = "pre";
+    lineNumbers.textContent = "1";
+    editorWrapper.appendChild(lineNumbers);
+
+    const editor = document.createElement("pre");
+    editor.contentEditable = "true";
     editor.style.flex = "1";
-    editor.style.padding = "8px";
+    editor.style.margin = "0";
+    editor.style.padding = "5px";
     editor.style.overflow = "auto";
     editor.style.whiteSpace = "pre";
     editor.style.outline = "none";
     editor.style.fontSize = "13px";
-    container.appendChild(editor);
+    editor.style.color = "#fff";
+    editor.style.background = "transparent";
+    editorWrapper.appendChild(editor);
 
     const buttonBar = document.createElement("div");
     buttonBar.style.display = "flex";
@@ -55,24 +74,48 @@
     clearBtn.style.cursor = "pointer";
     buttonBar.appendChild(clearBtn);
 
+    function updateLineNumbers() {
+        const lines = editor.innerText.split("\n").length;
+        lineNumbers.textContent = Array.from({ length: lines }, (_, i) => i + 1).join("\n");
+    }
+
     function highlight() {
-        let code = editor.innerText;
-        code = code.replace(/(&)/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-        code = code.replace(/("(.*?)"|'(.*?)')/g, '<span style="color:#ce9178">$1</span>');
-        code = code.replace(/\b(function|return|var|let|const|if|else|for|while|new|class|try|catch|await|async|throw)\b/g, '<span style="color:#569cd6">$1</span>');
-        code = code.replace(/\b(true|false|null|undefined)\b/g, '<span style="color:#569cd6">$1</span>');
-        editor.innerHTML = code;
+        let text = editor.innerText;
+        text = text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        text = text.replace(/("(.*?)"|'(.*?)')/g, '<span style="color:#ce9178">$1</span>');
+        text = text.replace(/\b(function|return|var|let|const|if|else|for|while|new|class|try|catch|await|async|throw)\b/g, '<span style="color:#569cd6">$1</span>');
+        text = text.replace(/\b(true|false|null|undefined)\b/g, '<span style="color:#569cd6">$1</span>');
+        editor.innerHTML = text.replace(/\n/g, "<br>");
+        placeCaretAtEnd(editor);
+    }
+
+    function placeCaretAtEnd(el) {
+        const range = document.createRange();
+        const sel = window.getSelection();
+        range.selectNodeContents(el);
+        range.collapse(false);
+        sel.removeAllRanges();
+        sel.addRange(range);
     }
 
     editor.addEventListener("input", () => {
-        setTimeout(highlight, 0);
+        updateLineNumbers();
+        highlight();
     });
+
+    function convertGitHubToRaw(url) {
+        if (url.includes("github.com") && url.includes("/blob/")) {
+            return url.replace("github.com", "raw.githubusercontent.com").replace("/blob/", "/");
+        }
+        return url;
+    }
 
     runBtn.onclick = async () => {
         const code = editor.innerText.trim();
-        if (/^https:\/\/raw\.githubusercontent\.com\/.*\.(js|txt)$/.test(code)) {
+        if (/(githubusercontent\.com|github\.com).*\.(js|txt)$/.test(code)) {
+            const rawUrl = convertGitHubToRaw(code);
             try {
-                const res = await fetch(code);
+                const res = await fetch(rawUrl);
                 const text = await res.text();
                 new Function(text)();
             } catch (e) {
@@ -89,18 +132,21 @@
 
     clearBtn.onclick = () => {
         editor.innerText = "";
+        updateLineNumbers();
     };
 
     let offsetX = 0, offsetY = 0, isDown = false;
-    container.onmousedown = e => {
+    container.addEventListener("mousedown", e => {
         isDown = true;
         offsetX = e.clientX - container.offsetLeft;
         offsetY = e.clientY - container.offsetTop;
-    };
-    document.onmousemove = e => {
+    });
+    document.addEventListener("mousemove", e => {
         if (!isDown) return;
         container.style.left = (e.clientX - offsetX) + "px";
         container.style.top = (e.clientY - offsetY) + "px";
-    };
-    document.onmouseup = () => { isDown = false; };
+    });
+    document.addEventListener("mouseup", () => { isDown = false; });
+
+    updateLineNumbers();
 })();

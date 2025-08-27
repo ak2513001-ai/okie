@@ -1,127 +1,137 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <title>Draggable JS Executor</title>
-  <style>
-    #jsContainer {
-      position: fixed;
-      top: 50px;
-      left: 50px;
-      width: 280px;
-      background: #f9f9f9;
-      border: 1px solid #ccc;
-      border-radius: 6px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
-      font-family: Arial, sans-serif;
-      z-index: 9999;
-      resize: both;
-      overflow: hidden;
-    }
-    #headerBar {
-      padding: 6px;
-      background: #007bff;
-      color: white;
-      cursor: move;
-      font-size: 14px;
-    }
-    #codeInput {
-      width: 95%;
-      height: 100px;
-      margin: 6px;
-      font-family: monospace;
-      font-size: 13px;
-    }
-    #btnBox {
-      text-align: center;
-      margin-bottom: 6px;
-    }
-    #btnBox button {
-      padding: 6px 10px;
-      margin: 2px;
-      font-size: 13px;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-    }
-    #executeBtn { background: #28a745; color:white; }
-    #clearBtn { background: #dc3545; color:white; }
-  </style>
-</head>
-<body>
-  
-<div id="jsContainer">
-  <div id="headerBar">JS Runner</div>
-  <textarea id="codeInput" placeholder="Paste JS code or GitHub/raw link..."></textarea>
-  <div id="btnBox">
-    <button id="executeBtn">Execute</button>
-    <button id="clearBtn">Clear</button>
-  </div>
-</div>
+// ==UserScript==
+// @name         Draggable JS Executor
+// @namespace    http://tampermonkey.net/
+// @version      1.0
+// @description  Floating draggable box to paste/execute JS or GitHub/raw links
+// @author       You
+// @match        *://*/*
+// @grant        none
+// ==/UserScript==
 
-<script>
-(function(){
-  const box = document.getElementById("jsContainer");
-  const header = document.getElementById("headerBar");
-  const textarea = document.getElementById("codeInput");
-  const execBtn = document.getElementById("executeBtn");
-  const clearBtn = document.getElementById("clearBtn");
+(function() {
+    'use strict';
 
-  // --- Make draggable ---
-  let offsetX=0, offsetY=0, dragging=false;
-  header.addEventListener("mousedown", e=>{
-    dragging = true;
-    offsetX = e.clientX - box.offsetLeft;
-    offsetY = e.clientY - box.offsetTop;
-  });
-  document.addEventListener("mousemove", e=>{
-    if(dragging){
-      box.style.left = (e.clientX - offsetX) + "px";
-      box.style.top = (e.clientY - offsetY) + "px";
-    }
-  });
-  document.addEventListener("mouseup", ()=> dragging=false);
+    // --- Create container elements ---
+    const box = document.createElement("div");
+    box.id = "jsExecutorBox";
+    box.innerHTML = `
+      <div id="jsExecHeader">JS Runner</div>
+      <textarea id="jsExecInput" placeholder="Paste JS code or GitHub/raw link..."></textarea>
+      <div id="jsExecBtnBox">
+        <button id="jsExecRun">Execute</button>
+        <button id="jsExecClear">Clear</button>
+      </div>
+    `;
+    document.body.appendChild(box);
 
-  // --- GitHub link normalization ---
-  function toRawGithubLink(url){
-    try {
-      if(url.includes("github.com") && !url.includes("raw.githubusercontent.com")){
-        return url
-          .replace("github.com", "raw.githubusercontent.com")
-          .replace("/blob/", "/");
+    // --- Styles ---
+    const style = document.createElement("style");
+    style.textContent = `
+      #jsExecutorBox {
+        position: fixed;
+        top: 50px;
+        left: 50px;
+        width: 260px;
+        background: #f9f9f9;
+        border: 1px solid #ccc;
+        border-radius: 6px;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+        font-family: Arial, sans-serif;
+        font-size: 13px;
+        z-index: 999999;
+        resize: both;
+        overflow: hidden;
       }
-    } catch(e){ console.error(e); }
-    return url;
-  }
-
-  // --- Execute Button ---
-  execBtn.addEventListener("click", async ()=>{
-    let input = textarea.value.trim();
-    if(!input) return;
-
-    // If it's a URL, handle fetching
-    if(/^https?:\/\//i.test(input)){
-      let link = toRawGithubLink(input);
-      try {
-        let res = await fetch(link);
-        if(!res.ok) throw new Error("HTTP error " + res.status);
-        let code = await res.text();
-        eval(code); // Execute fetched code
-      } catch(err){
-        alert("Error fetching/executing: " + err);
+      #jsExecHeader {
+        padding: 6px;
+        background: #007bff;
+        color: white;
+        cursor: move;
+        font-size: 14px;
+        user-select: none;
       }
-    } else {
-      try {
-        eval(input); // Direct JS or bookmarklet
-      } catch(err){
-        alert("Execution error: " + err);
+      #jsExecInput {
+        width: 94%;
+        height: 90px;
+        margin: 6px;
+        font-family: monospace;
+        font-size: 13px;
       }
+      #jsExecBtnBox {
+        text-align: center;
+        margin-bottom: 6px;
+      }
+      #jsExecBtnBox button {
+        padding: 5px 10px;
+        margin: 2px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 12px;
+      }
+      #jsExecRun { background: #28a745; color: white; }
+      #jsExecClear { background: #dc3545; color: white; }
+    `;
+    document.head.appendChild(style);
+
+    // --- Dragging logic ---
+    const header = box.querySelector("#jsExecHeader");
+    let dragging = false, offsetX=0, offsetY=0;
+
+    header.addEventListener("mousedown", e=>{
+        dragging = true;
+        offsetX = e.clientX - box.offsetLeft;
+        offsetY = e.clientY - box.offsetTop;
+        e.preventDefault();
+    });
+    document.addEventListener("mousemove", e=>{
+        if(dragging){
+            box.style.left = (e.clientX - offsetX) + "px";
+            box.style.top = (e.clientY - offsetY) + "px";
+        }
+    });
+    document.addEventListener("mouseup", ()=> dragging = false);
+
+    // --- Helper: turn GitHub link -> raw ---
+    function toRawGithubLink(url){
+        try {
+            if(url.includes("github.com") && !url.includes("raw.githubusercontent.com")){
+                return url
+                    .replace("github.com", "raw.githubusercontent.com")
+                    .replace("/blob/", "/");
+            }
+        } catch(e){}
+        return url;
     }
-  });
 
-  // --- Clear Button ---
-  clearBtn.addEventListener("click", ()=> textarea.value = "");
+    // --- Execution ---
+    const textarea = box.querySelector("#jsExecInput");
+    const runBtn = box.querySelector("#jsExecRun");
+    const clearBtn = box.querySelector("#jsExecClear");
+
+    runBtn.addEventListener("click", async ()=>{
+        let input = textarea.value.trim();
+        if(!input) return;
+
+        // If link -> fetch & execute
+        if(/^https?:\/\//i.test(input)){
+            let link = toRawGithubLink(input);
+            try {
+                let res = await fetch(link);
+                if(!res.ok) throw new Error("HTTP error " + res.status);
+                let code = await res.text();
+                eval(code);
+            } catch(err){
+                alert("Error fetching/executing: " + err);
+            }
+        } else {
+            try {
+                eval(input); // Direct code
+            } catch(err){
+                alert("Execution error: " + err);
+            }
+        }
+    });
+
+    clearBtn.addEventListener("click", ()=> textarea.value = "");
 })();
-</script>
-</body>
-</html>
